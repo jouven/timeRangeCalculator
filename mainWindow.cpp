@@ -1463,7 +1463,7 @@ void mainWindow_c::showAboutMessage_f()
     plainQMessageBox_f
     (
                 appConfig_ptr_ext->translate_f(
-                    "<p>Basic time arithmetic between single timestamp/time range and other time range/s, "
+                    "<p>Basic time arithmetic between single timestamp/time range and other time range/s "
                     "plus some export options</p>"
                     "<p>Creaded by: Jouven<br>"
                     R"(Source: <a href="https://github.com/jouven/timeRangeCalculator">github.com/jouven/timeRangeCalculator</a><br>)"
