@@ -1,5 +1,5 @@
 # timeRangeCalculator
-Basic time arithmetic between single timestamp/time range and other time range/s plus some export options
+GUI program to do basic time arithmetic between single timestamp/time range and other time range/s plus some export options
 
 Compilation
 -----------
