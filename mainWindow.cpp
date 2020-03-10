@@ -100,7 +100,14 @@ R"(While the input is focused there are the following hotkeys:
 'a' same pushing Adds From time button
 's' same pushing Adds To time button
 'd' adds a ':' character
-'f' same a pressing backspace)"
+'f' same a pressing backspace
+Input formats are:
+1 a number, will be evaluated as milliseconds, i.e. 500, half a second
+2 hh:mm:ss.zzz and partial versions i.e. mm:ss, ss.zzz... 23:59:59.999 is the maximum value using this format
+3 value+letter separated by one or more spaces i.e. 50s 50d 50m = 50 years + 50 days + 50 minutes,
+  order doesn't matter, there can be duplicates, values without a letter are ignored
+  ":", "/", "-" are replaced by spaces, in the end everything is converted to milliseconds
+  possible letters: z = millisecond, s = second, m = minute, h = hour and d = day)"
 ));
     //that's the "string" length of max 64bit signed number
     /////////////////////////////////////"9223372036854775808 (length 19)
@@ -135,7 +142,9 @@ void mainWindow_c::createTableExportOptionsWidgets_f(QVBoxLayout* layout_par)
     exportPresetCombo_pri->insertItem(exportPresetCombo_pri->count(), appConfig_ptr_ext->translate_f("Time ranges"), "Time ranges");
 
     QPushButton* exportButtonTmp(new QPushButton(appConfig_ptr_ext->translate_f("Export to clipboard")));
-    exportButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Exporting also works pressing the \"copy\" key sequence (usually ctrl+c), a table must focused"));
+    exportButtonTmp->setToolTip(appConfig_ptr_ext->translate_f(
+"Exporting also works pressing the \"copy\" key sequence (usually ctrl+c) using this method and focusing a table overrides the table to export combo."
+" Selecting rows narrows the exported rows"));
     firstRowTmp->addWidget(exportButtonTmp);
     QObject::connect(exportButtonTmp, &QPushButton::clicked, this, &mainWindow_c::exportToClipboardButtonPushed_f);
 
@@ -314,7 +323,6 @@ void mainWindow_c::removeSelectedTimeChangeTable_f()
 
 void mainWindow_c::keyPressEvent(QKeyEvent* event_par)
 {
-
      if (event_par->matches(QKeySequence::Copy))
      {
          QTableWidget* focusedTable(nullptr);
@@ -1314,104 +1322,109 @@ void mainWindow_c::exportToClipboard_f(QTableWidget* focusedTable_par)
     }
 
     QList<QTableWidgetItem*> selectedItemsTmp(tableToExportTmp->selectedItems());
-    if (selectedItemsTmp.size() > 0)
+    if (selectedItemsTmp.isEmpty())
     {
-        std::set<int> selectedRowsTmp;
-        for (const QTableWidgetItem* cell_ite_con : selectedItemsTmp)
+        for (int i = 0, l = tableToExportTmp->rowCount(); i<l; ++i)
         {
-            selectedRowsTmp.emplace(cell_ite_con->row());
+            selectedItemsTmp.append(tableToExportTmp->item(i, 0));
         }
-        QString textToClipBoardTmp;
-        int columnOffset(0);
-        if (exportTableChangesTmp)
-        {
-            columnOffset = 1;
-        }
-        for (const int row_ite_con : selectedRowsTmp)
-        {
-            QString rowStringTmp;
-            //sign
-            if (exportTableChangesTmp and includeSignTmp)
-            {
-                rowStringTmp
-                        .append(tableToExportTmp->item(row_ite_con, 0)->text());
-            }
-            //from milliseconds
-            if (exportMillisecondsTmp or exportAllTmp)
-            {
-                rowStringTmp
-                        .append(tableToExportTmp->item(row_ite_con, columnOffset)->text())
-                        .append(timeRangeSeparatorTmp);
-            }
-            //to milliseconds
-            if (exportMillisecondsTmp or exportAllTmp)
-            {
-                rowStringTmp
-                        .append(tableToExportTmp->item(row_ite_con, columnOffset + 2)->text());
-            }
-            //elapsed milliseconds
-            if (includeElapsedTmp)
-            {
-                if (exportTableValuesTmp or exportTableChangesTmp)
-                {
-                    if (exportMillisecondsTmp or exportAllTmp)
-                    {
-                        addSpaceOnce_f(rowStringTmp);
-                        rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 4)->text());
-                    }
-                }
-                //elapsed values don't change, that's why there aren't any columns, because it would be the same as the timeValuesTable_pri
-                if (exportTableResultsTmp)
-                {
-                    if (exportMillisecondsTmp or exportAllTmp)
-                    {
-                        addSpaceOnce_f(rowStringTmp);
-                        rowStringTmp.append(timeValuesTable_pri->item(row_ite_con, columnOffset + 4)->text());
-                    }
-                }
-            }
-            //from timestamp
-            if (exportTimeRangesTmp or exportAllTmp)
-            {
-                addSpaceOnce_f(rowStringTmp);
-                rowStringTmp
-                        .append(tableToExportTmp->item(row_ite_con, columnOffset + 1)->text())
-                        .append(timeRangeSeparatorTmp);
-            }
-            //to timestamp
-            if (exportTimeRangesTmp or exportAllTmp)
-            {
-                rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 3)->text());
-            }
-            if (includeElapsedTmp)
-            {
-                if (exportTableValuesTmp or exportTableChangesTmp)
-                {
-                    if (exportTimeRangesTmp or exportAllTmp)
-                    {
-                        addSpaceOnce_f(rowStringTmp);
-                        rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 5)->text());
-                    }
-                }
-                //elapsed values don't change, that's why there aren't any columns, because it would be the same as the timeValuesTable_pri
-                if (exportTableResultsTmp)
-                {
-                    if (exportTimeRangesTmp or exportAllTmp)
-                    {
-                        addSpaceOnce_f(rowStringTmp);
-                        rowStringTmp.append(timeValuesTable_pri->item(row_ite_con, columnOffset + 5)->text());
-                    }
-                }
-            }
-            if (*selectedRowsTmp.rbegin() not_eq row_ite_con)
-            {
-                rowStringTmp.append(timeRowSeparatorTmp);
-            }
-            textToClipBoardTmp.append(rowStringTmp);
-        }
-        QClipboard *clipboard = QGuiApplication::clipboard();
-        clipboard->setText(textToClipBoardTmp);
     }
+
+    std::set<int> selectedRowsTmp;
+    for (const QTableWidgetItem* cell_ite_con : selectedItemsTmp)
+    {
+        selectedRowsTmp.emplace(cell_ite_con->row());
+    }
+    QString textToClipBoardTmp;
+    int columnOffset(0);
+    if (exportTableChangesTmp)
+    {
+        columnOffset = 1;
+    }
+    for (const int row_ite_con : selectedRowsTmp)
+    {
+        QString rowStringTmp;
+        //sign
+        if (exportTableChangesTmp and includeSignTmp)
+        {
+            rowStringTmp
+                    .append(tableToExportTmp->item(row_ite_con, 0)->text());
+        }
+        //from milliseconds
+        if (exportMillisecondsTmp or exportAllTmp)
+        {
+            rowStringTmp
+                    .append(tableToExportTmp->item(row_ite_con, columnOffset)->text())
+                    .append(timeRangeSeparatorTmp);
+        }
+        //to milliseconds
+        if (exportMillisecondsTmp or exportAllTmp)
+        {
+            rowStringTmp
+                    .append(tableToExportTmp->item(row_ite_con, columnOffset + 2)->text());
+        }
+        //elapsed milliseconds
+        if (includeElapsedTmp)
+        {
+            if (exportTableValuesTmp or exportTableChangesTmp)
+            {
+                if (exportMillisecondsTmp or exportAllTmp)
+                {
+                    addSpaceOnce_f(rowStringTmp);
+                    rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 4)->text());
+                }
+            }
+            //elapsed values don't change, that's why there aren't any columns, because it would be the same as the timeValuesTable_pri
+            if (exportTableResultsTmp)
+            {
+                if (exportMillisecondsTmp or exportAllTmp)
+                {
+                    addSpaceOnce_f(rowStringTmp);
+                    rowStringTmp.append(timeValuesTable_pri->item(row_ite_con, columnOffset + 4)->text());
+                }
+            }
+        }
+        //from timestamp
+        if (exportTimeRangesTmp or exportAllTmp)
+        {
+            addSpaceOnce_f(rowStringTmp);
+            rowStringTmp
+                    .append(tableToExportTmp->item(row_ite_con, columnOffset + 1)->text())
+                    .append(timeRangeSeparatorTmp);
+        }
+        //to timestamp
+        if (exportTimeRangesTmp or exportAllTmp)
+        {
+            rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 3)->text());
+        }
+        if (includeElapsedTmp)
+        {
+            if (exportTableValuesTmp or exportTableChangesTmp)
+            {
+                if (exportTimeRangesTmp or exportAllTmp)
+                {
+                    addSpaceOnce_f(rowStringTmp);
+                    rowStringTmp.append(tableToExportTmp->item(row_ite_con, columnOffset + 5)->text());
+                }
+            }
+            //elapsed values don't change, that's why there aren't any columns, because it would be the same as the timeValuesTable_pri
+            if (exportTableResultsTmp)
+            {
+                if (exportTimeRangesTmp or exportAllTmp)
+                {
+                    addSpaceOnce_f(rowStringTmp);
+                    rowStringTmp.append(timeValuesTable_pri->item(row_ite_con, columnOffset + 5)->text());
+                }
+            }
+        }
+        if (*selectedRowsTmp.rbegin() not_eq row_ite_con)
+        {
+            rowStringTmp.append(timeRowSeparatorTmp);
+        }
+        textToClipBoardTmp.append(rowStringTmp);
+    }
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setText(textToClipBoardTmp);
 }
 
 void timeInput_c::keyPressEvent(QKeyEvent* event_par)
