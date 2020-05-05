@@ -400,11 +400,11 @@ void mainWindow_c::updateResults_f()
             ++reverseIteratorFromChangeTmp;
         }
 
-        timeResultsTable_pri->item(reverseRowIndexTmp, 0)->setData(Qt::DisplayRole, currentFromTimeTmp);
+        timeResultsTable_pri->item(reverseRowIndexTmp, 0)->setData(Qt::DisplayRole, QVariant::fromValue(currentFromTimeTmp));
         timeResultsTable_pri->item(reverseRowIndexTmp, 1)->setData(Qt::DisplayRole, formatedTime_f(currentFromTimeTmp));
         if (includeToTmp)
         {
-            timeResultsTable_pri->item(reverseRowIndexTmp, 2)->setData(Qt::DisplayRole, currentToTimeTmp);
+            timeResultsTable_pri->item(reverseRowIndexTmp, 2)->setData(Qt::DisplayRole, QVariant::fromValue(currentToTimeTmp));
             timeResultsTable_pri->item(reverseRowIndexTmp, 3)->setData(Qt::DisplayRole, formatedTime_f(currentToTimeTmp));
         }
 
@@ -802,7 +802,7 @@ void mainWindow_c::addTimeFromBase_f()
 
         {
             QTableWidgetItem* millisecondsCellTmp(new QTableWidgetItem);
-            millisecondsCellTmp->setData(Qt::DisplayRole, parsedInputTmp);
+            millisecondsCellTmp->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
             millisecondsCellTmp->setFlags(millisecondsCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
             QTableWidgetItem* formatedTimeCellTmp(new QTableWidgetItem);
@@ -828,7 +828,7 @@ void mainWindow_c::addTimeFromBase_f()
         //add the result row
         {
             QTableWidgetItem* millisecondsCellTmp(new QTableWidgetItem);
-            millisecondsCellTmp->setData(Qt::DisplayRole, parsedInputTmp);
+            millisecondsCellTmp->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
             millisecondsCellTmp->setFlags(millisecondsCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
             QTableWidgetItem* formatedTimeCellTmp(new QTableWidgetItem);
@@ -864,7 +864,7 @@ void mainWindow_c::addTimeFromChange_f()
         signCellTmp->setFlags(signCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
         QTableWidgetItem* millisecondsCellTmp(new QTableWidgetItem);
-        millisecondsCellTmp->setData(Qt::DisplayRole, parsedInputTmp);
+        millisecondsCellTmp->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
         millisecondsCellTmp->setFlags(millisecondsCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
         QTableWidgetItem* formatedTimeCellTmp(new QTableWidgetItem);
@@ -951,14 +951,14 @@ void mainWindow_c::addTimeToBase_f()
 
 
             auto elapsedTmp(parsedInputTmp - timeBaseValueTmp);
-            timeValuesTable_pri->item(rowTmp, 2)->setData(Qt::DisplayRole, parsedInputTmp);
+            timeValuesTable_pri->item(rowTmp, 2)->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
             timeValuesTable_pri->item(rowTmp, 3)->setData(Qt::DisplayRole, formatedTime_f(parsedInputTmp));
-            timeValuesTable_pri->item(rowTmp, 4)->setData(Qt::DisplayRole, elapsedTmp);
+            timeValuesTable_pri->item(rowTmp, 4)->setData(Qt::DisplayRole, QVariant::fromValue(elapsedTmp));
             timeValuesTable_pri->item(rowTmp, 5)->setData(Qt::DisplayRole, formatedTime_f(elapsedTmp));
 
             timeValuesTable_pri->sortItems(0, Qt::AscendingOrder);
 
-            timeResultsTable_pri->item(rowTmp, 2)->setData(Qt::DisplayRole, parsedInputTmp);
+            timeResultsTable_pri->item(rowTmp, 2)->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
             timeResultsTable_pri->item(rowTmp, 3)->setData(Qt::DisplayRole, formatedTime_f(parsedInputTmp));
 
             timeResultsTable_pri->sortItems(0, Qt::AscendingOrder);
@@ -1026,9 +1026,9 @@ void mainWindow_c::addTimeToChange_f()
             }
 
             auto elapsedTmp(parsedInputTmp - timeChangeValueTmp);
-            timeChangesTable_pri->item(rowTmp, 3)->setData(Qt::DisplayRole, parsedInputTmp);
+            timeChangesTable_pri->item(rowTmp, 3)->setData(Qt::DisplayRole, QVariant::fromValue(parsedInputTmp));
             timeChangesTable_pri->item(rowTmp, 4)->setData(Qt::DisplayRole, formatedTime_f(parsedInputTmp));
-            timeChangesTable_pri->item(rowTmp, 5)->setData(Qt::DisplayRole, elapsedTmp);
+            timeChangesTable_pri->item(rowTmp, 5)->setData(Qt::DisplayRole, QVariant::fromValue(elapsedTmp));
             timeChangesTable_pri->item(rowTmp, 6)->setData(Qt::DisplayRole, formatedTime_f(elapsedTmp));
 
             timeChangesTable_pri->sortItems(0, Qt::AscendingOrder);
