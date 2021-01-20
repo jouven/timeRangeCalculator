@@ -14,14 +14,12 @@ void appConfig_c::read_f(const QJsonObject& json_par_con)
     if (not json_par_con["widgetGeometry"].isUndefined())
     {
         QJsonObject jsonWindowGeometryTmp(json_par_con["widgetGeometry"].toObject());
-        if (not jsonWindowGeometryTmp.keys().isEmpty() )
+        if (not jsonWindowGeometryTmp.isEmpty() )
         {
-            widgetGeometryUMap_pri.reserve(jsonWindowGeometryTmp.keys().size());
-            for (const QString& jsonKey_ite_con : jsonWindowGeometryTmp.keys())
+            widgetGeometryUMap_pri.reserve(jsonWindowGeometryTmp.size());
+            for (auto ite = jsonWindowGeometryTmp.constBegin(); ite not_eq jsonWindowGeometryTmp.constEnd(); ++ite)
             {
-                QByteArray qByteArrayTmp;
-                qByteArrayTmp.append(jsonWindowGeometryTmp.value(jsonKey_ite_con).toString());
-                widgetGeometryUMap_pri.insert(jsonKey_ite_con, qUncompress(QByteArray::fromBase64(qByteArrayTmp)));
+                widgetGeometryUMap_pri.insert(ite.key(), qUncompress(QByteArray::fromBase64(ite.value().toString().toUtf8())));
             }
         }
     }
@@ -167,7 +165,7 @@ appConfig_c::appConfig_c()
 
     commandLineParser_pri.process(*qApp);
 
-    locateConfigFilePath_f(commandLineParser_pri, false);
+    locateConfigFilePath_f(commandLineParser_pri, false, false);
 
 
     //no errors here, load if possible else skip
@@ -197,7 +195,7 @@ appConfig_c::appConfig_c()
         loadChecksum_pri = QCryptographicHash::hash(jsonByteArray, QCryptographicHash::Md5);
         configLoaded_pri = true;
 #ifdef DEBUGJOUVEN
-        qtOutRef_ext() << "App config loaded successful" << endl;
+        qtStdout_f() << "App config loaded successful" << Qt::endl;
 #endif
         break;
     }
@@ -210,7 +208,7 @@ appConfig_c::appConfig_c()
     else
     {
 #ifdef DEBUGJOUVEN
-        qtOutRef_ext() << "Default log path couldn't be set" << endl;
+        qtStdout_f() << "Default log path couldn't be set" << Qt::endl;
 #endif
     }
     logDataHub_pri.loadLogFiles_f(QString(), logFilter_c(), true, true);

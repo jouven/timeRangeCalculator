@@ -460,7 +460,7 @@ int_fast64_t mainWindow_c::parseInput_f() const
 
         //case custom format
         inputTextTmp.replace(':',' ').replace('/', ' ').replace('-',' ');
-        QStringList splitTmp(inputTextTmp.split(" ", QString::SkipEmptyParts));
+        QStringList splitTmp(inputTextTmp.split(" ", Qt::SkipEmptyParts));
         for (const QString& something_par_con : splitTmp)
         {
             QChar lastCharacterTmp(something_par_con.at(something_par_con.size() - 1));
