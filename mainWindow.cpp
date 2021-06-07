@@ -2,6 +2,7 @@
 
 #include "appConfig.hpp"
 
+#include "essentialQtso/datetime.hpp"
 #include "essentialQtgso/messageBox.hpp"
 
 #include "comuso/practicalTemplates.hpp"
@@ -246,8 +247,7 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
     saveTableGeometry_f(timeResultsTable_pri);
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
 
-    appConfig_ptr_ext->saveConfigFile_f();
-
+    Q_EMIT closeWindow_signal();
     event->accept();
 }
 
@@ -512,109 +512,13 @@ int_fast64_t mainWindow_c::parseInput_f() const
     return resultTmp;
 }
 
-QString mainWindow_c::formatedTime_f(const int_fast64_t milliseconds_par_con) const
-{
-    QString resultTmp("00:00");
-    while (milliseconds_par_con not_eq 0)
-    {
-        QString millisecondsStrTmp(QString::number(milliseconds_par_con));
-        QString secondsStrTmp;
-        QString minutesStrTmp;
-        QString hoursStrTmp;
-        QString daysStrTmp;
-
-        int_fast64_t secondsTmp(0);
-        if (milliseconds_par_con < 1000)
-        {
-            resultTmp = millisecondsStrTmp;
-            break;
-        }
-        else
-        {
-            resultTmp.clear();
-            millisecondsStrTmp = millisecondsStrTmp.mid(millisecondsStrTmp.size() - 3);
-            secondsTmp = milliseconds_par_con / 1000;
-        }
-
-        int_fast64_t quotTmp(0);
-        if (secondsTmp > 0)
-        {
-            auto divisionSecondsResultTmp(std::lldiv(secondsTmp, 60));
-            secondsStrTmp = QString::number(divisionSecondsResultTmp.rem);
-            quotTmp = divisionSecondsResultTmp.quot;
-            if (secondsStrTmp.size() == 1)
-            {
-                secondsStrTmp.prepend('0');
-            }
-        }
-
-        if (quotTmp > 0)
-        {
-            auto divisionMinutesResultTmp(std::lldiv(quotTmp, 60));
-            minutesStrTmp = QString::number(divisionMinutesResultTmp.rem);
-            quotTmp = divisionMinutesResultTmp.quot;
-            if (minutesStrTmp.size() == 1)
-            {
-                minutesStrTmp.prepend('0');
-            }
-        }
-
-        if (quotTmp > 0)
-        {
-            auto divisionHoursResultTmp(std::lldiv(quotTmp, 24));
-            hoursStrTmp = QString::number(divisionHoursResultTmp.rem);
-            if (divisionHoursResultTmp.quot > 0)
-            {
-                daysStrTmp = QString::number(divisionHoursResultTmp.quot);
-            }
-        }
-
-        //23 23:24:00.000
-        if (millisecondsStrTmp not_eq "000")
-        {
-            resultTmp = millisecondsStrTmp;
-            if (not secondsStrTmp.isEmpty())
-            {
-                resultTmp.prepend('.');
-            }
-        }
-        if (not secondsStrTmp.isEmpty())
-        {
-            resultTmp.prepend(secondsStrTmp);
-        }
-        else
-        {
-            resultTmp.prepend("00");
-        }
-
-        if (not minutesStrTmp.isEmpty())
-        {
-            resultTmp.prepend(minutesStrTmp + ":");
-        }
-        else
-        {
-            resultTmp.prepend("00:");
-        }
-
-        if (not hoursStrTmp.isEmpty())
-        {
-            resultTmp.prepend(hoursStrTmp + ":");
-        }
-
-        if (not daysStrTmp.isEmpty())
-        {
-            resultTmp.prepend(daysStrTmp + "d ");
-        }
-
-        break;
-    }
-    return resultTmp;
-}
-
 mainWindow_c::mainWindow_c()
 {
     this->setObjectName("mainWindow_");
+}
 
+void mainWindow_c::start_f()
+{
     QShortcut* quitShortCut(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this));
     //Qt::WidgetWithChildrenShortcut works when the main window is focused (with other modals windows open)
     //20191103 except Qt::WidgetWithChildrenShortcut
@@ -649,6 +553,7 @@ mainWindow_c::mainWindow_c()
                 << appConfig_ptr_ext->translate_f("Elapsed");
         timeValuesTable_pri->setHorizontalHeaderLabels(labelsTmp);
     }
+
     timeValuesTable_pri->horizontalHeader()->setObjectName(timeValuesTable_pri->objectName() + "QHeaderView_");
     timeValuesTable_pri->horizontalHeader()->setSortIndicatorShown(false);
     timeValuesTable_pri->setShowGrid(true);
@@ -683,6 +588,7 @@ mainWindow_c::mainWindow_c()
                 << appConfig_ptr_ext->translate_f("Elapsed");
         timeChangesTable_pri->setHorizontalHeaderLabels(labelsTmp);
     }
+
     timeChangesTable_pri->horizontalHeader()->setObjectName(timeChangesTable_pri->objectName() + "QHeaderView_");
     timeChangesTable_pri->horizontalHeader()->setSortIndicatorShown(false);
     timeChangesTable_pri->setShowGrid(true);
@@ -713,6 +619,7 @@ mainWindow_c::mainWindow_c()
                 << appConfig_ptr_ext->translate_f("To");
         timeResultsTable_pri->setHorizontalHeaderLabels(labelsTmp);
     }
+
     timeResultsTable_pri->horizontalHeader()->setObjectName(timeResultsTable_pri->objectName() + "QHeaderView_");
     timeResultsTable_pri->horizontalHeader()->setSortIndicatorShown(false);
     timeResultsTable_pri->setShowGrid(true);
@@ -725,7 +632,6 @@ mainWindow_c::mainWindow_c()
     timeResultColumnLayoutTmp->addWidget(timeResultsTable_pri);
 
     bottomRowLayoutTmp->addLayout(timeResultColumnLayoutTmp);
-
     bottomRowLayoutTmp->insertStretch(-1, 1);
 
 
@@ -753,7 +659,7 @@ mainWindow_c::mainWindow_c()
     this->setLayout(mainLayoutTmp);
 #endif
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Time range calculator"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Time range calculator Qtg"));
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
@@ -765,6 +671,8 @@ mainWindow_c::mainWindow_c()
         loadTableGeometry_f(timeChangesTable_pri);
         loadTableGeometry_f(timeResultsTable_pri);
     }
+
+     show();
 }
 
 void mainWindow_c::clearAllTables_f()
@@ -1476,10 +1384,11 @@ void mainWindow_c::showAboutMessage_f()
     plainQMessageBox_f
     (
                 appConfig_ptr_ext->translate_f(
+                    "<p>Time Range Calculator Qtg</p>"
                     "<p>Basic time arithmetic between single timestamp/time range and other time range/s "
                     "plus some export options</p>"
                     "<p>Creaded by: Jouven<br>"
-                    R"(Source: <a href="https://github.com/jouven/timeRangeCalculator">github.com/jouven/timeRangeCalculator</a><br>)"
+                    R"(Source: <a href="https://github.com/jouven/timeRangeCalculatorQtg">github.com/jouven/timeRangeCalculatorQtg</a><br>)"
                     R"(Homepage: <a href="https://avidcalm.com">avidcalm.com</a></p>)"
                     )
                 , appConfig_ptr_ext->translate_f("About TimeRangeCalculator")

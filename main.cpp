@@ -4,25 +4,30 @@
 
 #include <QApplication>
 
+#ifdef DEBUGJOUVEN
+#ifndef Q_OS_WIN
+//this is to get pretty stacktrace when the execution crashes
+//instructions:
+//1 this only applies to program projects, libs don't need this (libs need debug, -gX flags when compiling)
+//2 link to -ldw or the elftutils library
+//3 set the DEFINES in the .pro BACKWARD_HAS_UNWIND BACKWARD_HAS_DW (check backward.hpp source for more info about the macros)
+//more info https://github.com/bombela/backward-cpp
+#include "backward-cpp/backward.hpp"
+namespace {
+backward::SignalHandling sh;
+}
+#endif
+#endif
+
+
 int main(int argc, char *argv[])
 {
     QApplication qtapp(argc, argv);
-    QApplication::setApplicationName("Time Range Calculator");
-    QApplication::setApplicationVersion("1.0");
 
-    QCommandLineParser parser;
-    parser.setApplicationDescription("Time Range Calculator description\nCreated by Jouven");
-    parser.addHelpOption();
-    parser.addVersionOption();
-
-    //process the actual command line arguments given by the user
-    parser.process(qtapp);
-
-    appConfig_c appConfigTmp;
-    appConfig_ptr_ext = std::addressof(appConfigTmp);
-
+    //order here is important
     mainWindow_c mainWindowTmp;
-    mainWindowTmp.show();
+
+    appConfig_c appConfigTmp(nullptr, std::addressof(mainWindowTmp));
 
     return qtapp.exec();
 }

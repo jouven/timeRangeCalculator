@@ -1,393 +1,51 @@
 #include "appConfig.hpp"
 
-//#include <QApplication>
-#include <QFile>
-//#include <QFileInfo>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QCryptographicHash>
-#include <QTimer>
+#include "mainWindow.hpp"
+
 #include <QJsonObject>
+#include <QCommandLineParser>
 
-void appConfig_c::read_f(const QJsonObject& json_par_con)
+void appConfig_c::derivedConfigureCommandLineParser_f(QCommandLineParser& ) const
 {
-    if (not json_par_con["widgetGeometry"].isUndefined())
-    {
-        QJsonObject jsonWindowGeometryTmp(json_par_con["widgetGeometry"].toObject());
-        if (not jsonWindowGeometryTmp.isEmpty() )
-        {
-            widgetGeometryUMap_pri.reserve(jsonWindowGeometryTmp.size());
-            for (auto ite = jsonWindowGeometryTmp.constBegin(); ite not_eq jsonWindowGeometryTmp.constEnd(); ++ite)
-            {
-                widgetGeometryUMap_pri.insert(ite.key(), qUncompress(QByteArray::fromBase64(ite.value().toString().toUtf8())));
-            }
-        }
-    }
-
-    if (not json_par_con["fileDialogsSettings"].isUndefined())
-    {
-        QJsonArray jsonArraySelectedDirectoryHistoryTmp(json_par_con["fileDialogsSettings"].toArray());
-        if (not jsonArraySelectedDirectoryHistoryTmp.isEmpty())
-        {
-            for (const auto jsonArrayFileDialogItem_ite_con : jsonArraySelectedDirectoryHistoryTmp)
-            {
-                QJsonObject fileDialogSettingObjectTmp(jsonArrayFileDialogItem_ite_con.toObject());
-                QJsonArray jsonArraySelectedDirectoryHistoryTmp(fileDialogSettingObjectTmp["selectedDirectoryHistory"].toArray());
-                if (not jsonArraySelectedDirectoryHistoryTmp.isEmpty())
-                {
-                    //put them in a vector because since they were written in the array in order,
-                    //first one had the bigger/recent time,
-                    //when using addDirectoryHistory_f, the first one from the array will get
-                    //the smaller/later time, a reverse is necessary
-                    std::vector<QString> directoryVectorTmp;
-                    for (const auto jsonArrayDirectoryHistoryItem_ite_con : jsonArraySelectedDirectoryHistoryTmp)
-                    {
-                        directoryVectorTmp.emplace_back(jsonArrayDirectoryHistoryItem_ite_con.toString());
-                    }
-                    std::reverse(directoryVectorTmp.begin(), directoryVectorTmp.end());
-                    for (const QString& directoryItem_ite_con : directoryVectorTmp)
-                    {
-                        addDirectoryHistory_f(fileDialogSettingObjectTmp["fileDialogStringId"].toString(), directoryItem_ite_con);
-                    }
-                }
-            }
-        }
-    }
-
-    if (not json_par_con["translationConfigFile"].isUndefined())
-    {
-        translationConfigFileSet_pri = true;
-        translationConfigFile_pri = json_par_con["translationConfigFile"].toString();
-    }
-    if (not json_par_con["logsDirectoryPath"].isUndefined())
-    {
-        logsDirectoryPathSet_pri = true;
-        logsDirectoryPath_pri = json_par_con["logsDirectoryPath"].toString();
-    }
+    //if i ever serialize the time range rows of the different tables and implement a save/load
+    //parser_par.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible-valid");
 }
 
-void appConfig_c::write_f(QJsonObject& json_par) const
+void appConfig_c::derivedCheckCommandLineParser_f(QCommandLineParser& )
 {
-    //create a filedialogsSettings arraay
-    //and the object will have the directory history for now
-    QJsonArray jsonArrayFileDialongSettingsTmp;
-    QHash<QString, QMap<int_fast64_t, QString>>::const_iterator iteTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.constBegin());
-    while (iteTmp not_eq fileDialogNameToDirectoryNameAndTimeMap_pri.constEnd())
-    {
-        std::vector<QString> directoryHistoryTmp(directoryHistory_f(iteTmp.key()));
-        if (not directoryHistoryTmp.empty())
-        {
-            QJsonArray jsonArraySelectedDirectoryHistoryTmp;
-            for (const QString& directoryItem_ite_con : directoryHistoryTmp)
-            {
-                jsonArraySelectedDirectoryHistoryTmp.append(QJsonValue(directoryItem_ite_con));
-            }
-            QJsonObject fileDialogSettingsTmp;
-            fileDialogSettingsTmp["fileDialogStringId"] = iteTmp.key();
-            fileDialogSettingsTmp["selectedDirectoryHistory"] = jsonArraySelectedDirectoryHistoryTmp;
-            jsonArrayFileDialongSettingsTmp.append(fileDialogSettingsTmp);
-        }
-        ++iteTmp;
-    }
-    json_par["fileDialogsSettings"] = jsonArrayFileDialongSettingsTmp;
 
-    if (not widgetGeometryUMap_pri.isEmpty())
-    {
-        QJsonObject pairsTmp;
-        QHash<QString, QByteArray>::const_iterator iteratorTmp = widgetGeometryUMap_pri.constBegin();
-        while (iteratorTmp not_eq widgetGeometryUMap_pri.constEnd())
-        {
-            QString qStringTmp;
-            qStringTmp.append(qCompress(iteratorTmp.value()).toBase64());
-            pairsTmp[iteratorTmp.key()] = qStringTmp;
-            ++iteratorTmp;
-        }
-        json_par["widgetGeometry"] = pairsTmp;
-    }
-    if (translationConfigFileSet_pri)
-    {
-        json_par["translationConfigFile"] = translationConfigFile_pri;
-    }
-    if (logsDirectoryPathSet_pri)
-    {
-        json_par["logsDirectoryPath"] = logsDirectoryPath_pri;
-    }
 }
 
-logDataHub_c* appConfig_c::logDataHub_f()
+void appConfig_c::derivedStart_f()
 {
-    return std::addressof(logDataHub_pri);
-}
+    appConfig_ptr_ext = this;
 
-void appConfig_c::tryLoadTranslations_f()
-{
-    //check json field, else use default path
-    if (translationConfigFile_pri.isEmpty())
-    {
-        translationConfigFile_pri = fileTypePath_f(fileTypes_ec::translationConfig);
-    }
+    QObject::connect(this, &appConfig_c::started_signal, mainWindow_pri, &mainWindow_c::start_f);
+    QObject::connect(mainWindow_pri, &mainWindow_c::closeWindow_signal, this, &appConfig_c::quit_signal);
 
-    if (QFile::exists(translationConfigFile_pri))
-    {
-        translator_pri.readConfigJSONFile_f(translationConfigFile_pri);
-        if (translator_pri.isConfigSet_f())
-        {
-            MACRO_ADDMESSAGE(logDataHub_pri, "Translation/s loaded successful", logItem_c::type_ec::info);
-        }
-        else
-        {
-
-        }
-    }
-
-#ifdef DEBUGJOUVEN
-    translator_pri.setAddNotFoundKeys_f(true);
-#endif
-    if (translator_pri.addNotFoundKeys_f() and not translator_pri.isConfigSet_f())
-    {
-        MACRO_ADDMESSAGE(logDataHub_pri, R"(Translation/s not loaded, adding "empty", "hard-coded"-"english" translation)", logItem_c::type_ec::info);
-        translator_pri.addEmptyLanguageLink_f("hard-coded", "english");
-        translator_pri.setTranslateFromLanguage_f("hard-coded");
-        translator_pri.setTranslateToLanguageChain_f({"english"});
-    }
-    logDataHub_pri.setTranslatorPtr_f(std::addressof(translator_pri));
-}
-
-appConfig_c::appConfig_c()
-    : logDataHub_pri(nullptr)
-{
-    commandLineParser_pri.setApplicationDescription("ActonQtg, GUI program to manage acton files");
-    commandLineParser_pri.addHelpOption();
-    commandLineParser_pri.addVersionOption();
-    //FUTURE parse arguments for, languagefile, log location...
-    commandLineParser_pri.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible-valid");
-    //FUTURE flag to run the loaded action files
-
-    commandLineParser_pri.process(*qApp);
-
-    locateConfigFilePath_f(commandLineParser_pri, false, false);
-
-
-    //no errors here, load if possible else skip
-    //if there is any file to load
-
-    //load actonQtg generic config
-    while (configFilePath_f().second)
-    {
-        QFile configFileLoad(configFilePath_f().first);
-        QByteArray jsonByteArray;
-        if (configFileLoad.open(QIODevice::ReadOnly))
-        {
-            jsonByteArray = configFileLoad.readAll();
-        }
-        else
-        {
-            break;
-        }
-
-        QJsonDocument jsonDocObj(QJsonDocument::fromJson(jsonByteArray));
-        if (jsonDocObj.isNull())
-        {
-            break;
-        }
-
-        read_f(jsonDocObj.object());
-        loadChecksum_pri = QCryptographicHash::hash(jsonByteArray, QCryptographicHash::Md5);
-        configLoaded_pri = true;
-#ifdef DEBUGJOUVEN
-        qtStdout_f() << "App config loaded successful" << Qt::endl;
-#endif
-        break;
-    }
-
-    logDataHub_pri.setLogSaveDirectoryPath_f(logsDirectoryPath_pri);
-    if (logDataHub_pri.isValidLogPathBaseName_f())
-    {
-        logDataHub_pri.setSaveLogFiles_f(true);
-    }
-    else
-    {
-#ifdef DEBUGJOUVEN
-        qtStdout_f() << "Default log path couldn't be set" << Qt::endl;
-#endif
-    }
-    logDataHub_pri.loadLogFiles_f(QString(), logFilter_c(), true, true);
-
-    //load actonQtg translations
+    loadConfigFile_f();
     tryLoadTranslations_f();
-}
+    loadLogging_f();
 
-
-bool appConfig_c::saveConfigFile_f()
-{
-    bool configSavedTmp(false);
-
-    QString configFileStr;
-    if (configFilePath_f().second)
-    {
-        configFileStr = configFilePath_f().first;
-    }
-    else
-    {
-        configFileStr = fileTypePath_f(fileTypes_ec::config);
-    }
-
-    QJsonObject jsonObjectTmp;
-    write_f(jsonObjectTmp);
-    QJsonDocument jsonDocumentTmp(jsonObjectTmp);
-    QByteArray jsonByteArray(jsonDocumentTmp.toJson(QJsonDocument::Indented));
-
-    if (QCryptographicHash::hash(jsonByteArray, QCryptographicHash::Md5) not_eq loadChecksum_pri)
-    {
-        QFile configFileSaveTmp(configFileStr);
-        if (configFileSaveTmp.open(QIODevice::WriteOnly))
-        {
-            configFileSaveTmp.write(jsonByteArray);
-            configSavedTmp = true;
-        }
-    }
-
-#ifdef DEBUGJOUVEN
-    translator_pri.setAddNotFoundKeys_f(false);
-    translator_pri.writeConfigJSONFile_f(fileTypePath_f(fileTypes_ec::translationConfig), true);
-#endif
-
-    return configSavedTmp;
-}
-
-bool appConfig_c::configLoaded_f() const
-{
-    return configLoaded_pri;
-}
-
-QByteArray appConfig_c::widgetGeometry_f(const QString& key_par_con) const
-{
-    return widgetGeometryUMap_pri.value(key_par_con);
-}
-
-void appConfig_c::setWidgetGeometry_f(const QString& key_par_con, const QByteArray& windowGeometry_par_con)
-{
-    widgetGeometryUMap_pri.insert(key_par_con, windowGeometry_par_con);
-}
-
-
-void appConfig_c::addDirectoryHistory_f(
-        const QString& fileDialogStringId_par_con
-        , const QString& directory_par_con
-)
-{
-    int_fast64_t nowTmp(std::chrono::steady_clock::now().time_since_epoch().count());
-    if (fileDialogNameToDirectoryNameAndTimeMap_pri.count(fileDialogStringId_par_con) > 0)
+    if (configLoaded_f())
     {
 
     }
     else
     {
-        QMap<int_fast64_t, QString> accessTimeToDirectoryMapTmp;
-        fileDialogNameToDirectoryNameAndTimeMap_pri.insert(fileDialogStringId_par_con, accessTimeToDirectoryMapTmp);
-    }
-
-    QHash<QString, QMap<int_fast64_t, QString>>::iterator accessTimeToDirectoryMapTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.find(fileDialogStringId_par_con));
-    accessTimeToDirectoryMapTmp->insert(nowTmp, directory_par_con);
-
-    if (accessTimeToDirectoryMapTmp->size() > 10)
-    {
-        uint_fast64_t lastItemKeyTmp(accessTimeToDirectoryMapTmp->firstKey());
-        accessTimeToDirectoryMapTmp->remove(lastItemKeyTmp);
+        //messageUser_f({"Couldn't load {0} config file, pass \"-g\" argument to generate a config file documentation file", configFilePath_f()}, messageType_ec::information);
+        Q_EMIT quit_signal();
     }
 }
 
-QString appConfig_c::translate_f(const QString& key_par_con)
+void appConfig_c::derivedQuit_f()
 {
-    QString resultTmp;
-    bool foundTmp(false);
-    if (translator_pri.isConfigSet_f())
-    {
-        resultTmp = translator_pri.translate_f(key_par_con, std::addressof(foundTmp));
-    }
-    //this is already done when addNotFoundKeys in the translator_c object is true
-    //it is done like this because otherwise a lot of texts/labels will be empty
-    if (not foundTmp)
-    {
-        resultTmp = key_par_con;
-    }
-    return resultTmp;
+    saveConfigFile_f();
+    saveTranslationFile_f();
 }
 
-QString appConfig_c::translateAndReplace_f(const text_c& text_par_con)
-{
-    QString resultTmp;
-    bool foundTmp(false);
-    if (translator_pri.isConfigSet_f())
-    {
-        resultTmp = translator_pri.translateAndReplace_f(text_par_con, std::addressof(foundTmp));
-    }
-    //this is already done when addNotFoundKeys in the translator_c object is true
-    //it is done like this because otherwise a lot of texts/labels will be empty
-    if (not foundTmp)
-    {
-        resultTmp = text_par_con.rawReplace_f();
-    }
-    return resultTmp;
-}
-
-QString appConfig_c::translateAndReplace_f(const textCompilation_c& textCompilation_par_con)
-{
-    QString resultTmp;
-    if (translator_pri.isConfigSet_f())
-    {
-        resultTmp = translator_pri.translateAndReplaceToString_f(textCompilation_par_con);
-    }
-    else
-    {
-        resultTmp = textCompilation_par_con.toRawReplace_f();
-    }
-    return resultTmp;
-}
-
-
-bool appConfig_c::addLogMessage_f(
-        const text_c& message_par_con
-        , const logItem_c::type_ec logType_par_con
-        , const QString& sourceFile_par_con
-        , const QString& sourceFunction_par_con
-        , const int_fast32_t line_par_con
-)
-{
-    return logDataHub_pri.addMessage_f(message_par_con, logType_par_con, sourceFile_par_con, sourceFunction_par_con, line_par_con);
-}
-
-std::vector<std::pair<const logItem_c* const, const QDateTime* const>> appConfig_c::getLogs_f(const logFilter_c& logFilter_par_con) const
-{
-    return logDataHub_pri.filter_f(logFilter_par_con);
-}
-
-QStringList appConfig_c::commandLinePositionalArguments_f() const
-{
-    return commandLineParser_pri.positionalArguments();
-}
-
-std::vector<QString> appConfig_c::directoryHistory_f(const QString& fileDialogStringId_par_con) const
-{
-    std::vector<QString> historyVector;
-    if (fileDialogNameToDirectoryNameAndTimeMap_pri.count(fileDialogStringId_par_con) > 0)
-    {
-        QMap<int_fast64_t, QString> accessTimeToDirectoryMapTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.value(fileDialogStringId_par_con));
-        historyVector.reserve(accessTimeToDirectoryMapTmp.size());
-        //(from qt doc) "If you only need to extract the values from a map (not the keys), you can also use foreach:"
-        for (const QString& directory_ite_con : accessTimeToDirectoryMapTmp)
-        {
-            historyVector.emplace_back(directory_ite_con);
-        }
-        //since the default order is using "less" the old ones will be first, reverse
-        std::reverse(historyVector.begin(), historyVector.end());
-    }
-    return historyVector;
-}
+appConfig_c::appConfig_c(QObject* parent_par, mainWindow_c* mainWindow_par)
+    : programConfigGUI_c(parent_par), mainWindow_pri(mainWindow_par)
+{}
 
 appConfig_c* appConfig_ptr_ext = nullptr;
-//appConfig_c& appConfig_f()
-//{
-//    static appConfig_c appConfig_sta;
-//    return appConfig_sta;
-//}

@@ -1,4 +1,4 @@
-# timeRangeCalculator
+# timeRangeCalculatorQtg
 GUI program to do basic time arithmetic between single timestamp/time range and other time range/s plus some export options
 
 Compilation
@@ -17,9 +17,7 @@ https://github.com/jouven/essentialQtgso
 
 https://github.com/jouven/logsinJSONQtso
 
-https://github.com/jouven/translatorJSONQtso
-
-Run (in timeRangeCalculator source directory or pointing to it):
+Run (in timeRangeCalculatorQtg source directory or pointing to it):
 
     qmake
 

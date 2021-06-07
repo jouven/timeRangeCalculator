@@ -46,12 +46,12 @@ CONFIG(release, debug|release){
 #debug
 CONFIG(debug, debug|release){
 LIBS += -L$${MYPATH}home/jouven/mylibs/debug
-win32:LIBS += -lboost_date_time-mt
-!win32:LIBS += -lbackwardSTso
+#win32:LIBS += -lboost_date_time-mt
+!win32:LIBS += -ldw
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic
-    DEFINES += DEBUGJOUVEN
+    DEFINES += DEBUGJOUVEN BACKWARD_HAS_UNWIND BACKWARD_HAS_DW
 }
 }
 
@@ -73,7 +73,8 @@ CONFIG(debug, debug|release){
 }
 
 LIBS += -lessentialQtso -lessentialQtgso \
--ltranslatorJSONQtso -lbaseClassQtso -ltextQtso -llogsinJSONQtso
+-ltranslatorJSONQtso -lbaseClassQtso -ltextQtso -llogsinJSONQtso \
+-lprogramConfigQtso -lprogramConfigQtgso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3
